@@ -134,7 +134,7 @@ namespace WPFExampleKnyazev
 
         #endregion
 
-        #region Primitive Properties
+        #region Simple Properties
     
         /// <summary>
         /// No Metadata Documentation available.
@@ -153,7 +153,7 @@ namespace WPFExampleKnyazev
                 {
                     OnIdChanging(value);
                     ReportPropertyChanging("Id");
-                    _Id = StructuralObject.SetValidValue(value);
+                    _Id = StructuralObject.SetValidValue(value, "Id");
                     ReportPropertyChanged("Id");
                     OnIdChanged();
                 }
@@ -178,7 +178,7 @@ namespace WPFExampleKnyazev
             {
                 OnFirstNameChanging(value);
                 ReportPropertyChanging("FirstName");
-                _FirstName = StructuralObject.SetValidValue(value, false);
+                _FirstName = StructuralObject.SetValidValue(value, false, "FirstName");
                 ReportPropertyChanged("FirstName");
                 OnFirstNameChanged();
             }
@@ -202,7 +202,7 @@ namespace WPFExampleKnyazev
             {
                 OnMiddleNameChanging(value);
                 ReportPropertyChanging("MiddleName");
-                _MiddleName = StructuralObject.SetValidValue(value, true);
+                _MiddleName = StructuralObject.SetValidValue(value, true, "MiddleName");
                 ReportPropertyChanged("MiddleName");
                 OnMiddleNameChanged();
             }
@@ -226,7 +226,7 @@ namespace WPFExampleKnyazev
             {
                 OnSecondNameChanging(value);
                 ReportPropertyChanging("SecondName");
-                _SecondName = StructuralObject.SetValidValue(value, false);
+                _SecondName = StructuralObject.SetValidValue(value, false, "SecondName");
                 ReportPropertyChanged("SecondName");
                 OnSecondNameChanged();
             }
@@ -250,7 +250,7 @@ namespace WPFExampleKnyazev
             {
                 OnPositionChanging(value);
                 ReportPropertyChanging("Position");
-                _Position = StructuralObject.SetValidValue(value, false);
+                _Position = StructuralObject.SetValidValue(value, false, "Position");
                 ReportPropertyChanged("Position");
                 OnPositionChanged();
             }
@@ -274,7 +274,7 @@ namespace WPFExampleKnyazev
             {
                 OnDepartmentChanging(value);
                 ReportPropertyChanging("Department");
-                _Department = StructuralObject.SetValidValue(value, false);
+                _Department = StructuralObject.SetValidValue(value, false, "Department");
                 ReportPropertyChanged("Department");
                 OnDepartmentChanged();
             }
@@ -298,7 +298,7 @@ namespace WPFExampleKnyazev
             {
                 OnDateOfBirthChanging(value);
                 ReportPropertyChanging("DateOfBirth");
-                _DateOfBirth = StructuralObject.SetValidValue(value);
+                _DateOfBirth = StructuralObject.SetValidValue(value, "DateOfBirth");
                 ReportPropertyChanged("DateOfBirth");
                 OnDateOfBirthChanged();
             }
@@ -309,10 +309,8 @@ namespace WPFExampleKnyazev
 
         #endregion
 
-    
     }
 
     #endregion
 
-    
 }
