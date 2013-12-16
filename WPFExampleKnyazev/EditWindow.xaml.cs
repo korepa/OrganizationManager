@@ -5,34 +5,33 @@ namespace WPFExampleKnyazev
 {
     public partial class EditWindow
     {
-        private PersonModel personModel;
-        public PersonModel PersonModel { get { return personModel; } }
+        private PersonDTO personDTOEdited;
+        public PersonDTO PersonDTOEdited { get { return personDTOEdited; } }
 
-        public EditWindow(Window _owner, PersonModel _model)
+        public EditWindow(Window owner, PersonDTO personDTO)
         {
             InitializeComponent();
-            Owner = _owner;
+            Owner = owner;
 
-            personModel = new PersonModel();
-            if (_model != null)
+            personDTOEdited = new PersonDTO();
+            if (personDTO != null)
             {
-                personModel.Id = _model.Id;
-                personModel.InnerId = _model.InnerId;
-                personModel.FirstName = _model.FirstName;
-                personModel.MiddleName = _model.MiddleName;
-                personModel.SecondName = _model.SecondName;
-                personModel.Position = _model.Position;
-                personModel.Department = _model.Department;
-                personModel.DateOfBirth = _model.DateOfBirth;
+                personDTOEdited.Id = personDTO.Id;
+                personDTOEdited.FirstName = personDTO.FirstName;
+                personDTOEdited.MiddleName = personDTO.MiddleName;
+                personDTOEdited.SecondName = personDTO.SecondName;
+                personDTOEdited.Position = personDTO.Position;
+                personDTOEdited.Department = personDTO.Department;
+                personDTOEdited.DateOfBirth = personDTO.DateOfBirth;
             }
             else
             {
-                personModel.FirstName = "";
-                personModel.MiddleName = "";
-                personModel.SecondName = "";
-                personModel.Position = "";
-                personModel.Department = "";
-                personModel.DateOfBirth = new DateTime(1990, 1, 1);
+                personDTOEdited.FirstName = "";
+                personDTOEdited.MiddleName = "";
+                personDTOEdited.SecondName = "";
+                personDTOEdited.Position = "";
+                personDTOEdited.Department = "";
+                personDTOEdited.DateOfBirth = new DateTime(1990, 1, 1);
             }
 
             loadData();
@@ -47,17 +46,17 @@ namespace WPFExampleKnyazev
                 tbxPosition.DataContext =
                 tbxDepartment.DataContext =
                 dpDateOfBirth.DataContext
-                = personModel;
+                = personDTOEdited;
         }
 
         private void btnOk_Click(object sender, RoutedEventArgs e)
         {
             // check model state
-            if (personModel.FirstName == "" ||
-                personModel.SecondName == "" ||
-                personModel.Position == "" ||
-                personModel.Department == "" ||
-                personModel.DateOfBirth == DateTime.MinValue)
+            if (personDTOEdited.FirstName == "" ||
+                personDTOEdited.SecondName == "" ||
+                personDTOEdited.Position == "" ||
+                personDTOEdited.Department == "" ||
+                personDTOEdited.DateOfBirth == DateTime.MinValue)
             {
                 // if some parameter invalid
                 MessageBox.Show("Не удается добавить сотрудника. Не все поля заполнены!" +

@@ -1,8 +1,13 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 
 namespace WPFExampleKnyazev
@@ -18,24 +23,14 @@ namespace WPFExampleKnyazev
         // search command
         public static RoutedCommand SearchCommand = new RoutedCommand();
 
+        // object model for person
+        public DataAccess dataLayer = new DataAccess();
+
         public MainWindow()
         {
             InitializeComponent();
-            Loaded += SearchWindow_Loaded;
-        }
-
-        void SearchWindow_Loaded(object sender, RoutedEventArgs e)
-        {
-            loadData();
-        }
-
-        // function for update main datagrid after each successfull operation
-        private void loadData()
-        {
-            var dataLayer = new DataLayer();
-            var personList = dataLayer.GetAllPersons();
-
-            dgMain.ItemsSource = personList;
+            dataLayer.Initialize();
+            DataContext = dataLayer;
         }
 
         // add command 
@@ -48,14 +43,11 @@ namespace WPFExampleKnyazev
 
                 if (editWindow.DialogResult == true)
                 {
-                    var dataLayer = new DataLayer();
-                    var personModel = editWindow.PersonModel;
-                    var result = dataLayer.AddPerson(personModel);
+                    var personModel = editWindow.PersonDTOEdited;
+                    dataLayer.AddPerson(personModel);
 
-                    MessageBox.Show(result ? "Сотрудник добавлен" : "Не удалось добавить сотрудника!");
-
-                    if (result)
-                        Dispatcher.BeginInvoke(DispatcherPriority.Input, (ThreadStart)loadData);
+                    // update status of operation
+                    updateStatusAnimation("Сотрудник добавлен");
                 }
             }
             catch (Exception ex)
@@ -74,18 +66,14 @@ namespace WPFExampleKnyazev
         {
             try
             {
-                var personModel = dgMain.SelectedItem as PersonModel;
-                var result = false;
+                var personModel = dgMain.SelectedItem as PersonDTO;
                 if (personModel != null)
                 {
-                    var dataLayer = new DataLayer();
-                    result = dataLayer.DeletePerson(personModel.Id);
+                    dataLayer.DeletePerson(personModel);
                 }
 
-                MessageBox.Show(result ? "Сотрудник удален" : "Не удалось удалить сотрудника!");
-
-                if (result)
-                    Dispatcher.BeginInvoke(DispatcherPriority.Input, (ThreadStart)loadData);
+                // update status of operation
+                updateStatusAnimation("Сотрудник удален");
             }
             catch (Exception ex)
             {
@@ -103,21 +91,18 @@ namespace WPFExampleKnyazev
         {
             try
             {
-                var personModel = dgMain.SelectedItem as PersonModel;
+                var personModel = dgMain.SelectedItem as PersonDTO;
                 if (personModel != null)
                 {
                     var editWindow = new EditWindow(this, personModel);
                     editWindow.ShowDialog();
                     if (editWindow.DialogResult == true)
                     {
-                        var dataLayer = new DataLayer();
-                        personModel = editWindow.PersonModel;
-                        var result = dataLayer.EditPerson(personModel.Id, personModel);
+                        dataLayer.EditPerson(editWindow.PersonDTOEdited);
+                        dgMain.SelectedItem = null;
 
-                        MessageBox.Show(result ? "Данные сотрудника изменены" : "Не удалось изменить данные сотрудника!");
-
-                        if (result)
-                            Dispatcher.BeginInvoke(DispatcherPriority.Input, (ThreadStart)loadData);
+                        // update status of operation
+                        updateStatusAnimation("Данные сотрудника изменены");
                     }
                 }
             }
@@ -133,11 +118,10 @@ namespace WPFExampleKnyazev
         }
 
         // search command
-        private void ExecutedSearchCommand(object sender, ExecutedRoutedEventArgs e)
+        private async void ExecutedSearchCommand(object sender, ExecutedRoutedEventArgs e)
         {
             try
             {
-                var dataLayer = new DataLayer();
                 var searchDictionary = new Dictionary<string, object>();
 
                 // if search fields not empty, add parameters to dictionary
@@ -154,11 +138,16 @@ namespace WPFExampleKnyazev
                 if (dpDateOfBirth.SelectedDate != null)
                     searchDictionary["DateOfBirth"] = dpDateOfBirth.SelectedDate;
 
-                var resultList = dataLayer.SearchPerson(searchDictionary);
+                dataLayer.SearchPerson(searchDictionary);
 
-                if (resultList != null)
+                var searchCount = dataLayer.PersonDTOSearch.Count;
+                if (searchCount != 0)
                 {
-                    Dispatcher.BeginInvoke(DispatcherPriority.Input, (ThreadStart)delegate { dgSearch.ItemsSource = resultList; });
+                    updateStatusAnimation(string.Format("Найдено сотрудников: {0}", searchCount));
+                }
+                else
+                {
+                    updateStatusAnimation("Не найдено ни одного сотрудника");
                 }
             }
             catch (Exception ex)
@@ -184,7 +173,25 @@ namespace WPFExampleKnyazev
                 e.CanExecute = false;
             }
         }
+
+        // show status change
+        private void updateStatusAnimation(string statusText)
+        {
+            // update text
+            tblkStatusMessage.Text = statusText;
+
+            var animation1 = new DoubleAnimation();
+            animation1.AutoReverse = true;
+            animation1.From = 0;
+            animation1.To = 1;
+            animation1.Duration = TimeSpan.FromSeconds(1.5);
+            Storyboard.SetTarget(animation1, tblkStatusMessage);
+            Storyboard.SetTargetProperty(animation1, new PropertyPath(OpacityProperty));
+
+            var storyboard = new Storyboard();
+            storyboard.Children = new TimelineCollection { animation1 };
+
+            storyboard.Begin();
+        }
     }
-
-
 }

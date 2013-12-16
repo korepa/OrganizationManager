@@ -1,28 +1,43 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Data.Objects;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Transactions;
 
 namespace WPFExampleKnyazev
 {
-    public class DataLayer
+    public class DataAccess
     {
+        // main collection
+        ObservableCollection<PersonDTO> personDTO = new ObservableCollection<PersonDTO>();
+        public ObservableCollection<PersonDTO> PersonDTO { get { return personDTO; } }
+
+        // search collection
+        ObservableCollection<PersonDTO> personDTOSearch = new ObservableCollection<PersonDTO>();
+        public ObservableCollection<PersonDTO> PersonDTOSearch { get { return personDTOSearch; } }
+
+        public DataAccess()
+        {
+            personDTO = new ObservableCollection<PersonDTO>();
+            personDTOSearch = new ObservableCollection<PersonDTO>();
+        }
+
         // get all persons in organization
-        internal IEnumerable<PersonModel> GetAllPersons()
+        internal void Initialize()
         {
             using (var entities = new ORGANIZATIONEntities())
             {
-                var personModelList = getPersonModelList(entities.People.ToList());
-                return personModelList;
+                personDTO.SetRange(entities.People.ToList().GetPersonDTOCollection());
             }
         }
 
         // add new person to organization
-        internal bool AddPerson(PersonModel personModel)
+        internal void AddPerson(PersonDTO personDTOAdd)
         {
             // if new person is null
-            if (personModel == null) return false;
+            if (personDTOAdd == null) throw new ArgumentNullException("personDTOAdd", "Переданный объект не указывает на конкретный экзампляр");
 
             using (var entities = new ORGANIZATIONEntities())
             {
@@ -32,36 +47,35 @@ namespace WPFExampleKnyazev
                     try
                     {
                         // add new person from parameters
-                        var person = setPerson(personModel);
+                        var person = personDTOAdd.GetPerson();
                         entities.AddToPeople(person);
                         entities.SaveChanges(SaveOptions.DetectChangesBeforeSave);
 
-                        transaction.Complete();
+                        personDTOAdd.Id = person.Id;
+                        personDTO.Add(personDTOAdd);
 
-                        if (person.Id > 0)
-                        {
-                            return true;
-                        }
+                        transaction.Complete();
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         // error while add person
-                        // whrow exception again
+                        // throw exception again
                         throw;
                     }
-
-                    return false;
                 }
             }
         }
 
         // delete existed person
-        internal bool DeletePerson(int id)
+        internal void DeletePerson(PersonDTO personDTODelete)
         {
             using (var entities = new ORGANIZATIONEntities())
             {
                 try
                 {
+                    // get personDTO id
+                    var id = personDTODelete.Id;
+
                     // select deleted person and delete it
                     if (entities.People.Any(pers => pers.Id == id))
                     {
@@ -69,67 +83,62 @@ namespace WPFExampleKnyazev
                         entities.People.DeleteObject(personToDelete);
                         entities.SaveChanges(SaveOptions.DetectChangesBeforeSave);
 
-                        return true;
+                        personDTO.Remove(personDTODelete);
                     }
                     else
                     {
-                        return false;
+                        throw new ArgumentException("Не найден сотрудник с указанным идентификатором (Id)");
                     }
 
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // error while delete person
-                    // whrow exception again
+                    // throw exception again
                     throw;
                 }
-
-                return false;
             }
         }
 
         // edit existed person
-        internal bool EditPerson(int id, PersonModel personModel)
+        internal void EditPerson(PersonDTO personDTOEdit)
         {
             using (var entities = new ORGANIZATIONEntities())
             {
                 try
                 {
+                    // get personDTO id
+                    var id = personDTOEdit.Id;
+
                     // select person with specified id
                     if (entities.People.Any(pers => pers.Id == id))
                     {
                         var personToEdit = entities.People.Where(pers => pers.Id == id).First();
 
-                        // edit existed person
-                        personToEdit.FirstName = personModel.FirstName;
-                        personToEdit.MiddleName = personModel.MiddleName;
-                        personToEdit.SecondName = personModel.SecondName;
-                        personToEdit.Position = personModel.Position;
-                        personToEdit.Department = personModel.Department;
-                        personToEdit.DateOfBirth = personModel.DateOfBirth;
-
+                        // edit existed person in DB
+                        personToEdit.UpdatePerson(personDTOEdit);
                         entities.SaveChanges(SaveOptions.DetectChangesBeforeSave);
 
-                        return true;
+                        // update existed personDTO
+                        var personDTOEdited = personDTO.Where(pers => pers.Id == id).First();
+                        personDTOEdited.UpdatePersonDTO(personDTOEdit);
                     }
                     else
                     {
-                        return false;
+                        throw new ArgumentException("Не найден сотрудник с указанным идентификатором (Id)");
                     }
 
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    // whrow exception again
+                    // throw exception again
                     throw;
                 }
-
-                return false;
             }
         }
 
         // edit existed person
-        internal IEnumerable<PersonModel> SearchPerson(Dictionary<string, object> searchDictionary)
+        internal async void SearchPerson(Dictionary<string, object> searchDictionary)
         {
             using (var entities = new ORGANIZATIONEntities())
             {
@@ -183,54 +192,20 @@ namespace WPFExampleKnyazev
                                 select person;
                     }
 
-                    var list = getPersonModelList(query);
-                    return list;
-
+                    // execute query and set results to collection
+                    var searchResults = new ObservableCollection<PersonDTO>();
+                    //await Task.Run(() =>
+                    //{
+                    searchResults = query.GetPersonDTOCollection();
+                    //});
+                    personDTOSearch.SetRange(searchResults);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    // whrow exception again
+                    // throw exception again
                     throw;
                 }
             }
-        }
-
-        // private function for convert entity framework class Person to class PersonModel
-        private IEnumerable<PersonModel> getPersonModelList(IEnumerable<Person> personList)
-        {
-            var personModelList = new List<PersonModel>();
-            var counter = 0;
-
-            foreach (var person in personList)
-            {
-                var personModel = new PersonModel();
-                personModel.Id = person.Id;
-                personModel.InnerId = ++counter;
-                personModel.FirstName = person.FirstName;
-                personModel.MiddleName = person.MiddleName;
-                personModel.SecondName = person.SecondName;
-                personModel.Position = person.Position;
-                personModel.Department = person.Department;
-                personModel.DateOfBirth = person.DateOfBirth;
-
-                personModelList.Add(personModel);
-            }
-
-            return personModelList;
-        }
-
-        // private function for convert class PersonModel to entity framework class Person
-        private Person setPerson(PersonModel personModel)
-        {
-            var person = new Person();
-            person.FirstName = personModel.FirstName;
-            person.MiddleName = personModel.MiddleName;
-            person.SecondName = personModel.SecondName;
-            person.Position = personModel.Position;
-            person.Department = personModel.Department;
-            person.DateOfBirth = personModel.DateOfBirth;
-
-            return person;
         }
     }
 }
